@@ -51,6 +51,22 @@ small{color:#64748b}
 <button onclick="buka('rekap')">Rekap Tabungan</button>
 </div>
 </div>
+ 
+<div class="card">
+<h3>Identitas Guru</h3>
+
+<input id="namaGuru" placeholder="Nama Guru">
+<input id="nipGuru" placeholder="NIP (Opsional)">
+<input id="namaSekolah" placeholder="Nama Sekolah">
+
+<input id="tahunAjaran" placeholder="Tahun Ajaran, contoh 2026/2027">
+
+<button onclick="simpanIdentitasGuru()">
+Simpan Identitas Guru
+</button>
+
+</div>
+ 
 
 <section id="siswa" class="card hidden">
 <h3>Data Siswa</h3>
@@ -87,6 +103,7 @@ small{color:#64748b}
 
 <section id="rekap" class="card hidden">
 <h3>Rekap Tabungan Siswa</h3>
+<div id="identitasLaporan"></div>
 <div id="daftarRekap"></div>
 </section>
 
@@ -97,6 +114,24 @@ let db = {
 siswa:[],
 transaksi:[]
 };
+
+function simpanIdentitasGuru(){
+    db.guru = {
+        nama: document.getElementById('namaGuru').value.trim(),
+        nip: document.getElementById('nipGuru').value.trim(),
+        sekolah: document.getElementById('namaSekolah').value.trim(),
+        tahun: document.getElementById('tahunAjaran').value.trim()
+    };
+
+    if(!db.guru.nama || !db.guru.sekolah){
+        alert('Nama guru dan sekolah wajib diisi');
+        return;
+    }
+
+    simpanData();
+    tampilkan();
+    alert('Identitas guru berhasil disimpan');
+}
 
 function rupiah(n){
 return 'Rp'+Number(n).toLocaleString('id-ID');
@@ -113,6 +148,7 @@ try{
 let hasil=JSON.parse(data);
 if(Array.isArray(hasil.siswa)&&Array.isArray(hasil.transaksi)){
 db=hasil;
+if(!db.guru) db.guru = {};
 }
 }catch(e){}
 }
@@ -209,6 +245,16 @@ document.getElementById('daftarRekap').innerHTML=db.siswa.map(s=>`
 <small>${s.kelas} | Absen ${s.absen}</small>
 <br><b>${rupiah(saldo(s.id))}</b>
 </div>`).join('')||'<p>Belum ada data siswa</p>';
+document.getElementById('namaGuru').value = db.guru?.nama || '';
+document.getElementById('nipGuru').value = db.guru?.nip || '';
+document.getElementById('namaSekolah').value = db.guru?.sekolah || '';
+document.getElementById('tahunAjaran').value = db.guru?.tahun || '';
+
+document.getElementById('identitasLaporan').innerHTML =
+'<p>Guru: '+(db.guru?.nama || '-')+
+'<br>NIP: '+(db.guru?.nip || '-')+
+'<br>Sekolah: '+(db.guru?.sekolah || '-')+
+'<br>Tahun Ajaran: '+(db.guru?.tahun || '-')+'</p>';  
 }
 
 muatData();

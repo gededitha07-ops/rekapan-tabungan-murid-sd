@@ -101,11 +101,20 @@ Simpan Identitas Guru
 <button onclick="simpanTransaksi('penarikan')">Simpan Penarikan</button>
 </section>
 
+
 <section id="rekap" class="card hidden">
 <h3>Rekap Tabungan Siswa</h3>
+
 <div id="identitasLaporan"></div>
+
 <div id="daftarRekap"></div>
+
+<button onclick="cetakLaporan()">
+🖨️ Cetak / Simpan PDF
+</button>
+
 </section>
+
 
 </main>
 
@@ -131,6 +140,85 @@ function simpanIdentitasGuru(){
     simpanData();
     tampilkan();
     alert('Identitas guru berhasil disimpan');
+}
+
+function cetakLaporan(){
+
+    let isi = `
+    <html>
+    <head>
+    <title>Laporan Tabungan Murid SD</title>
+    <style>
+    body{font-family:Arial;padding:25px;color:#222}
+    h2,h3{text-align:center}
+    table{width:100%;border-collapse:collapse;margin-top:20px}
+    th,td{border:1px solid #333;padding:8px;text-align:left}
+    th{text-align:center;background:#eee}
+    .ttd{margin-top:60px;text-align:right}
+    </style>
+    </head>
+    <body>
+
+    <h2>LAPORAN TABUNGAN MURID SD</h2>
+
+    ${document.getElementById('identitasLaporan').innerHTML}
+
+    <table>
+    <tr>
+    <th>No</th>
+    <th>Nama Siswa</th>
+    <th>Kelas</th>
+    <th>Setoran</th>
+    <th>Penarikan</th>
+    <th>Saldo</th>
+    </tr>
+    `;
+
+    db.siswa.forEach((s,i)=>{
+        let transaksi=db.transaksi.filter(t=>t.siswaId===s.id);
+        let setoran=transaksi
+            .filter(t=>t.jenis==='setoran')
+            .reduce((a,t)=>a+t.jumlah,0);
+
+        let penarikan=transaksi
+            .filter(t=>t.jenis==='penarikan')
+            .reduce((a,t)=>a+t.jumlah,0);
+
+        isi+=`
+        <tr>
+        <td>${i+1}</td>
+        <td>${s.nama}</td>
+        <td>${s.kelas}</td>
+        <td>${rupiah(setoran)}</td>
+        <td>${rupiah(penarikan)}</td>
+        <td>${rupiah(saldo(s.id))}</td>
+        </tr>`;
+    });
+
+    isi+=`
+    </table>
+
+    <div class="ttd">
+    <p>Mengetahui,</p>
+    <p>Guru Kelas</p>
+    <br><br><br>
+    <b>${db.guru?.nama || ''}</b>
+    </div>
+
+    </body>
+    </html>`;
+
+    let jendela=window.open('','_blank');
+
+    if(!jendela){
+        alert('Izinkan pop-up untuk mencetak laporan');
+        return;
+    }
+
+    jendela.document.write(isi);
+    jendela.document.close();
+    jendela.focus();
+    jendela.print();
 }
 
 function rupiah(n){

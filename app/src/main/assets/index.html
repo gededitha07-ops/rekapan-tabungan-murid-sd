@@ -1,1 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rekapan Tabungan Murid SD</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:#f1f5fb;color:#263449}
+header{background:#075db8;color:white;padding:20px}
+header h2{margin:0}
+header p{margin:6px 0 0;font-size:13px}
+main{max-width:800px;margin:auto;padding:14px}
+.card{background:white;padding:16px;margin-bottom:13px;border-radius:13px;box-shadow:0 2px 8px #0001}
+h3{margin-top:0;color:#075db8}
+input,select,button{width:100%;padding:12px;margin:6px 0;border:1px solid #ccd5e1;border-radius:8px;font-size:15px}
+button{background:#075db8;color:white;border:0;font-weight:bold}
+button.secondary{background:#64748b}
+button.danger{background:#dc3545}
+.menu{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.menu button{margin:0}
+.stat{font-size:25px;font-weight:bold;color:#087b50}
+.item{padding:12px 0;border-bottom:1px solid #eee}
+small{color:#64748b}
+.hidden{display:none}
+</style>
+</head>
+<body>
 
+<header>
+<h2>📚 Tabungan Murid SD</h2>
+<p>Aplikasi Rekapan Tabungan Siswa Kelas 1–6</p>
+</header>
+
+<main>
+
+<div class="card">
+<h3>Dashboard Tabungan</h3>
+<small>Total seluruh saldo siswa</small>
+<div class="stat" id="totalSaldo">Rp0</div>
+<p>Jumlah siswa: <b id="jumlahSiswa">0</b></p>
+</div>
+
+<div class="card">
+<h3>Menu Utama</h3>
+<div class="menu">
+<button onclick="buka('siswa')">Data Siswa</button>
+<button onclick="buka('transaksi')">Setoran</button>
+<button onclick="buka('penarikan')">Penarikan</button>
+<button onclick="buka('rekap')">Rekap Tabungan</button>
+</div>
+</div>
+
+<section id="siswa" class="card hidden">
+<h3>Data Siswa</h3>
+<input id="nama" placeholder="Nama siswa">
+<select id="kelas">
+<option value="">Pilih Kelas</option>
+<option>Kelas 1</option>
+<option>Kelas 2</option>
+<option>Kelas 3</option>
+<option>Kelas 4</option>
+<option>Kelas 5</option>
+<option>Kelas 6</option>
+</select>
+<input id="absen" type="number" placeholder="Nomor absen">
+<button onclick="simpanSiswa()">Simpan Siswa</button>
+<div id="daftarSiswa"></div>
+</section>
+
+<section id="transaksi" class="card hidden">
+<h3>Setoran Tabungan</h3>
+<select id="siswaSetoran"></select>
+<input id="jumlahSetoran" type="number" placeholder="Jumlah setoran (Rp)">
+<input id="tanggalSetoran" type="date">
+<button onclick="simpanTransaksi('setoran')">Simpan Setoran</button>
+</section>
+
+<section id="penarikan" class="card hidden">
+<h3>Penarikan Tabungan</h3>
+<select id="siswaTarik"></select>
+<input id="jumlahTarik" type="number" placeholder="Jumlah penarikan (Rp)">
+<input id="tanggalTarik" type="date">
+<button onclick="simpanTransaksi('penarikan')">Simpan Penarikan</button>
+</section>
+
+<section id="rekap" class="card hidden">
+<h3>Rekap Tabungan Siswa</h3>
+<div id="daftarRekap"></div>
+</section>
+
+</main>
+
+<script>
+let db = {
+siswa:[],
+transaksi:[]
+};
+
+function rupiah(n){
+return 'Rp'+Number(n).toLocaleString('id-ID');
+}
+
+function simpanData(){
+localStorage.setItem('tabunganSD',JSON.stringify(db));
+}
+
+function muatData(){
+let data=localStorage.getItem('tabunganSD');
+if(data){
+try{
+let hasil=JSON.parse(data);
+if(Array.isArray(hasil.siswa)&&Array.isArray(hasil.transaksi)){
+db=hasil;
+}
+}catch(e){}
+}
+tampilkan();
+}
+
+function buka(id){
+document.querySelectorAll('main section').forEach(x=>x.classList.add('hidden'));
+document.getElementById(id).classList.remove('hidden');
+tampilkan();
+}
+
+function saldo(id){
+return db.transaksi
+.filter(t=>t.siswaId===id)
+.reduce((a,t)=>a+(t.jenis==='setoran'?t.jumlah:-t.jumlah),0);
+}
+
+function simpanSiswa(){
+let nama=document.getElementById('nama').value.trim();
+let kelas=document.getElementById('kelas').value;
+let absen=document.getElementById('absen').value;
+
+if(!nama||!kelas||!absen){
+alert('Lengkapi data siswa');
+return;
+}
+
+db.siswa.push({
+id:Date.now(),
+nama,kelas,absen
+});
+
+simpanData();
+document.getElementById('nama').value='';
+document.getElementById('kelas').value='';
+document.getElementById('absen').value='';
+tampilkan();
+alert('Data siswa berhasil disimpan');
+}
+
+function simpanTransaksi(jenis){
+let pilih=document.getElementById(jenis==='setoran'?'siswaSetoran':'siswaTarik').value;
+let jumlah=Number(document.getElementById(jenis==='setoran'?'jumlahSetoran':'jumlahTarik').value);
+let tanggal=document.getElementById(jenis==='setoran'?'tanggalSetoran':'tanggalTarik').value;
+
+let siswa=db.siswa.find(s=>s.id===Number(pilih));
+
+if(!siswa||!jumlah||jumlah<=0||!tanggal){
+alert('Lengkapi data transaksi');
+return;
+}
+
+if(jenis==='penarikan'&&jumlah>saldo(siswa.id)){
+alert('Saldo siswa tidak mencukupi');
+return;
+}
+
+db.transaksi.push({
+id:Date.now(),
+siswaId:siswa.id,
+jenis,
+jumlah,
+tanggal
+});
+
+simpanData();
+document.getElementById(jenis==='setoran'?'jumlahSetoran':'jumlahTarik').value='';
+tampilkan();
+alert('Transaksi berhasil disimpan');
+}
+
+function tampilkan(){
+let total=db.siswa.reduce((a,s)=>a+saldo(s.id),0);
+document.getElementById('totalSaldo').textContent=rupiah(total);
+document.getElementById('jumlahSiswa').textContent=db.siswa.length;
+
+document.getElementById('daftarSiswa').innerHTML=db.siswa.map(s=>`
+<div class="item">
+<b>${s.nama}</b><br>
+<small>${s.kelas} | Absen ${s.absen}</small>
+<br>Saldo: ${rupiah(saldo(s.id))}
+</div>`).join('')||'<p>Belum ada siswa</p>';
+
+['siswaSetoran','siswaTarik'].forEach(id=>{
+document.getElementById(id).innerHTML=
+'<option value="">Pilih Siswa</option>'+
+db.siswa.map(s=>`<option value="${s.id}">${s.nama} - ${s.kelas}</option>`).join('');
+});
+
+document.getElementById('daftarRekap').innerHTML=db.siswa.map(s=>`
+<div class="item">
+<b>${s.nama}</b><br>
+<small>${s.kelas} | Absen ${s.absen}</small>
+<br><b>${rupiah(saldo(s.id))}</b>
+</div>`).join('')||'<p>Belum ada data siswa</p>';
+}
+
+muatData();
+</script>
+
+</body>
+</html>
